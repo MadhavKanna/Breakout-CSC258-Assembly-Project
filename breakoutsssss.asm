@@ -170,6 +170,9 @@ game_loop:
         lw $t1, 0($t1)
         sw $t0, -4($t1)
         sw $0, 8($t1)
+        addi $t0, $t1, -4
+        sw $t0, ADDR_PADDLE
+        b game_loop
         
         li $v0, 10
         syscall                      # Quit gracefully
@@ -182,7 +185,9 @@ game_loop:
         lw $t1, 0($t1)
         sw $t0, 12($t1)
         sw $0, 0($t1)
-        
+        addi $t0, $t1, 4
+        sw $t0, ADDR_PADDLE
+        b game_loop
  	li $v0, 10
 	syscall                      # Quit gracefully
 
