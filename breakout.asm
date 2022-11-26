@@ -23,7 +23,17 @@ ADDR_KBRD:
     .word 0xffff0000
 
 ADDR_PADDLE:
-   .word 0x004000dc   
+   .word 0x10008f38  
+
+ADDR_BALL:
+   .word 0x10008ebc 
+
+BALL_X:
+   .word 29
+      
+BALL_Y:
+   .word 16
+
 
 WALL:
     .word 0x808080
@@ -55,133 +65,111 @@ YELLOW:
 
 	# Run the Brick Breaker game.
 main:
-    # Initialize the game
-    la $t0, WALL
-    lw $t0, WALL       
-    la $t1, ADDR_DSPL 
-    lw $t1, 0($t1)     
-    la $t5, ADDR_DSPL 
-    lw $t5, 0($t5)       
-    li $t2, 32
-    li $t3, 0
-    li $t6, 0
-    li $t7, 0
+    # Initialize the game 
     
+    la $a0, ADDR_DSPL
+    lw $a0, 0($a0)
+    la $a1, WALL
+    la $a2, 32
+    jal draw_line
+    
+    
+    jal draw_side_walls
+    
+    la $a0, ADDR_DSPL
+    lw $a0, 0($a0)
+    addi $a0, $a0, 388
+    la $a1, RED
+    li $a2, 30
+    jal draw_line	# draw red line
+    addi $a0, $a0, 8
+    la $a1, GREEN 	
+    jal draw_line	# draw green line
+    addi $a0, $a0, 8
+    la $a1, BLUE
+    jal draw_line	# draw blue line
+    addi $a0, $a0, 8
+    la $a1, YELLOW	
+    jal draw_line	# draw yellow line
+    
+    li $a0, 14
+    li $a1, 32
+    jal get_location_address
+    addi $a0, $v0, 0
+    la $a1, WHITE
+    li $a2, 4
+    
+    jal draw_line
+    j end
 
+# draw_line(start, colour_address, width) -> void
+#   Draw a line with width units horizontally across the display using the
+#   colour at colour_address and starting from the start address.
+#   Preconditions:
+#       - The start address can "accommodate" a line of width units
+draw_line:
+    # Retrieve the colour
+    lw $t0, 0($a1)              # colour = *colour_address
+
+    # Iterate $a2 times, drawing each unit in the line
+    li $t1, 0                   # i = 0
 draw_line_loop:
-    slt $t4, $t3, $t2
-    beq $t4, $0, draw_column_loop
-        sw $t0, 0($t1)
-        addi $t1, $t1,4
-    addi $t3, $t3, 1      
-    b draw_line_loop 
-draw_column_loop:
-    slt $t4, $t6, $t2
-    beq $t4, $0, next
-        sw $t0, 0($t5)
-        sw $t0, 124($t5)
-        addi $t5, $t5, 128
-    addi $t6, $t6, 1 
-    b draw_column_loop
- 
-next:      
-    la $t1, ADDR_DSPL 
-    lw $t1, 0($t1)
-    addi $t1, $t1, 256           
-    li $t2, 32
-    li $t3, 0
+    slt $t2, $t1, $a2           # i < width ?
+    beq $t2, $0, draw_line_epi  # if not, then done
 
-draw_brick_loop:
-    slt $t4, $t3, $t2
-    beq $t4, $0, draw_padle_and_ball
-        la $t0, RED
-        lw $t0, 0($t0)
-        sw $t0, 0($t1)
-        
-        la $t0, BLUE
-        lw $t0, 0($t0)
-        sw $t0, 128($t1)
-        
-        la $t0, GREEN
-        lw $t0, 0($t0)
-        sw $t0, 256($t1)
-        
-        addi $t1, $t1, 4
-    addi $t3, $t3, 1  
-    b draw_brick_loop
-   
-draw_padle_and_ball:
-    #paddle
-    la $t0, WHITE
-    lw $t0, 0($t0)
-    la $t1, ADDR_DSPL
-    lw $t1, 0($t1)
-    sw $t0, 3900($t1)
-    sw $t0, 3904($t1)
-    sw $t0, 3896($t1)
-    #ball
-    la $t0, YELLOW
-    lw $t0, 0($t0)
-    la $t1, ADDR_DSPL 
-    lw $t1, 0($t1)
-    sw $t0, 3772($t1)
-    
-    b game_loop            
-    
-exit:
-    li $v0, 10              # terminate the program gracefully
-    syscall
+        sw $t0, 0($a0)          # Paint unit with colour
+        addi $a0, $a0, 4        # Go to next unit
 
-game_loop:
+    addi $t1, $t1, 1            # i = i + 1
+    b draw_line_loop
+
+draw_line_epi:
+    jr $ra
+	
+#draw_side_walls(start, colour_address) -> void
+# Draw the side walls on both sides for height units vertically 
+# color loaded from color_address
+draw_side_walls:
+	lw $t0, 0($a1)		# load the colour_address
+	li $t1, 31		# load the height	
+	li $t2, 0		# i = 0
+draw_side_walls_loop: 
+
+	slt $t3, $t2, $t1	# set $t4 = 0 
+	beq $t3, $0, draw_side_walls_epi	# end loop if $t4 = 0
+		sw $t0, 0($a0)		
+		sw $t0, 124($a0)	
+		addi $a0, $a0, 128	# move the unit pointer to the next line
+	
+	addi $t2, $t2, 1		# i = i + 1
+	
+	j draw_side_walls_loop
+	
+draw_side_walls_epi:
+	jr $ra
+
+
+# get_location_address(x, y) -> int:
+# return the location address corresponding to x columns(units) and y(rows) where 1 unit = 4 bits
+get_location_address:
+	sll $a0, $a0, 2 		# loc_x = x * 4
+	sll $a1, $a1, 7 	# loc_y = y * 128
+	la $v0, ADDR_DSPL	
+	lw $v0, 0($v0)	
+	add $v0, $v0, $a0
+	add $v0, $v0, $a1
+	
+	jr $ra
+	
+end: 
+
+# game_loop:
 	# 1a. Check if key has been pressed
-	li 		$v0, 32
-	li 		$a0, 1
-	syscall
-
-    lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
-    lw $t8, 0($t0)                  # Load first word from keyboard
-    beq $t8, 1, keyboard_input      # If first word 1, key is pressed
-    b main
-
     # 1b. Check which key has been pressed
-    keyboard_input:                     # A key is pressed
-    lw $a0, 4($t0)                  # Load second word from keyboard
-    beq $a0, 0x71, respond_to_Q     # Check if the key q was pressed
-    beq $a0, 0x61, respond_to_A     # Check if the key a was pressed
-    beq $a0, 0x64, respond_to_D     # Check if the key d was pressed
-
-    li $v0, 1                       # ask system to print $a0
-    syscall
-
-    b main
-    
-    respond_to_Q:
-        li $v0, 10
-        syscall                      # Quit gracefully
-
-    
-    respond_to_A:
-        la $t0, WHITE
-        lw $t0, 0($t0)
-        la $t1, ADDR_DSPL
-        lw $t1, 0($t1)
-        sw $t0, 3900($t1)
-        sw $t0, 3908($t1)
-        sw $0, 3896($t1)
-        sw $t0, 3904($t1)
-       
-        li $v0, 10
-        syscall                      # Quit gracefully
-
-    
-    respond_to_D:
-	li $v0, 10
-	syscall                      # Quit gracefully
-
     # 2a. Check for collisions
 	# 2b. Update locations (paddle, ball)
 	# 3. Draw the screen
 	# 4. Sleep
 
     #5. Go back to 1
-    b game_loop
+    # b game_loop
