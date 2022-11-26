@@ -93,13 +93,16 @@ main:
     jal draw_line	# draw yellow line
     
     li $a0, 14
-    li $a1, 32
+    li $a1, 30
     jal get_location_address
     addi $a0, $v0, 0
     la $a1, WHITE
     li $a2, 4
     
     jal draw_line
+    
+    
+    
     j end
 
 # draw_line(start, colour_address, width) -> void
