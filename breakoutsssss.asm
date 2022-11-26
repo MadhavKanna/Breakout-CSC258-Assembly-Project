@@ -28,6 +28,13 @@ ADDR_PADDLE:
 ADDR_BALL:
    .word 0x10008ebc 
 
+BALL_X:
+   .word 29
+      
+BALL_Y:
+   .word 16
+
+
 WALL:
     .word 0x808080
 
@@ -128,12 +135,22 @@ draw_padle_and_ball:
     la $t1, ADDR_BALL 
     lw $t1, 0($t1)
     sw $t0, 0($t1)
+
+#move_ball:
+ #   la $t0, YELLOW
+  #  lw $t0, 0($t0)
+   # la $t1, ADDR_BALL 
+    #lw $t1, 0($t1)
+    #sw $0, 0($t1)
+    #sw $t0, -128($t1)
     
-    b game_loop            
+    b game_loop 
     
 exit:
     li $v0, 10              # terminate the program gracefully
     syscall
+
+
 
 game_loop:
 	# 1a. Check if key has been pressed
@@ -145,40 +162,60 @@ game_loop:
     lw $t8, 0($t0)                  # Load first word from keyboard
     beq $t8, 1, keyboard_input      # If first word 1, key is pressed
     b main
-
+    
     # 1b. Check which key has been pressed
     keyboard_input:                     # A key is pressed
     lw $a0, 4($t0)                  # Load second word from keyboard
     beq $a0, 0x71, respond_to_Q     # Check if the key q was pressed
     beq $a0, 0x61, respond_to_A     # Check if the key a was pressed
     beq $a0, 0x64, respond_to_D     # Check if the key d was pressed
+    beq $a0, 0x78, respond_to_X     # Check if the key x was pressed
 
     li $v0, 1                       # ask system to print $a0
     syscall
 
     b main
     
+    respond_to_X:
+    li $v0, 10                       # ask system to quit
+    syscall
+    
     respond_to_Q:
-        li $v0, 10
-        syscall                      # Quit gracefully
-
+    la $t0, YELLOW
+    lw $t0, 0($t0)
+    la $t1, ADDR_BALL 
+    lw $t1, 0($t1)
+    sw $0, 0($t1)
+    sw $t0, -128($t1)
+    li $v0, 10                       # ask system to quit
+    syscall
     
     respond_to_A:
-        la $t0, WHITE
-        lw $t0, 0($t0)
         la $t1, ADDR_PADDLE
         lw $t1, 0($t1)
+        li $t2, 0x10008f08
+        slt $t4, $t1, $t2
+        beq $t4, 1, game_loop
+        la $t1, ADDR_PADDLE
+        lw $t1, 0($t1)
+        la $t0, WHITE
+        lw $t0, 0($t0)
         sw $t0, -4($t1)
         sw $0, 8($t1)
         addi $t0, $t1, -4
         sw $t0, ADDR_PADDLE
         b game_loop
         
-        li $v0, 10
-        syscall                      # Quit gracefully
-
-    
+        li $v0, 10                       # ask system to quit
+        syscall
+        
+                        
     respond_to_D:
+        la $t1, ADDR_PADDLE
+        lw $t1, 0($t1)
+        li $t2, 0x10008f70
+        slt $t4, $t1, $t2
+        beq $t4, 0, game_loop
         la $t0, WHITE
         lw $t0, 0($t0)
         la $t1, ADDR_PADDLE
@@ -188,10 +225,11 @@ game_loop:
         addi $t0, $t1, 4
         sw $t0, ADDR_PADDLE
         b game_loop
- 	li $v0, 10
-	syscall                      # Quit gracefully
+                   
+        li $v0, 10                       # ask system to quit
+        syscall
 
-    # 2a. Check for collisions
+        # 2a. Check for collisions
 	# 2b. Update locations (paddle, ball)
 	# 3. Draw the screen
 	# 4. Sleep
