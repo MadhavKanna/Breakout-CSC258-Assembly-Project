@@ -89,9 +89,16 @@ main:
     la $a1, BLUE
     jal draw_line	# draw blue line
     addi $a0, $a0, 8
-    la $a1, YELLOW	
-    jal draw_line	# draw yellow line
+    la $a1, RED
+    jal draw_line	# draw red line
+    addi $a0, $a0, 8
+    la $a1, GREEN 	
+    jal draw_line	# draw green line
+    addi $a0, $a0, 8
+    la $a1, BLUE
+    jal draw_line	# draw blue line
     
+    # draw the paddle
     li $a0, 14
     li $a1, 30
     jal get_location_address
@@ -100,6 +107,15 @@ main:
     li $a2, 4
     
     jal draw_line
+    
+    # draw the ball
+     li $a0, 15
+     li $a1, 29
+     jal get_location_address
+     add $a0, $v0, 0, 
+     la $a1, YELLOW
+     li $a2, 1
+     jal draw_line
     
     
     
