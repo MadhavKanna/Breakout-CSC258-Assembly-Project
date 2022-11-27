@@ -240,7 +240,10 @@ handle_ball_movement:
     respond_to_x:		     # resetting game
     j main			     ## would be beneficial to add reset game message
 
-
+    respond_to_a:
+    
+    
+    respond_to_d: 
 end: 
 	li $v0, 10		    # end the program gracefully 
 	syscall
