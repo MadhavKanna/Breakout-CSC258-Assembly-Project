@@ -52,6 +52,9 @@ WHITE:
     
 YELLOW:
     .word	0xffff00    # white
+    
+BLACK: 
+    .word 	0x000000    # black
 
 ##############################################################################
 # Mutable Data
@@ -123,7 +126,7 @@ main:
      jal draw_line
     
     # check if the user has started the game by pressing 's' key
-    lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
+    la $t0, ADDR_KBRD               # $t0 = base address for keyboard
 check_start_loop:
     lw $t0, 0($t0)                  # Load first word from keyboard
     beq $t0, 0, check_start_loop      # If first word 0, key is not pressed, we check again
@@ -131,7 +134,8 @@ check_start_loop:
     beq $t0, 0x73, game_loop	    # if key pressed is 's', we start the game
     
     li $v0, 32			    # run loop(check for key press) every 50ms only
-    li $a0, 50				
+    li $a0, 50
+    syscall				
     j check_start_loop		    # if key pressed isn't 's' we check again
     
     j end
@@ -208,42 +212,61 @@ get_location_address:
 # 1 indicates upward velocity of ball
 game_loop:
 	# 1a. Check if key has been pressed
-    lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
-    lw $t0, 0($t0)                  # Load first word from keyboard
-    beq $t0, 1, handle_keyboard_input      # If first word 1, key is pressed
+   	 lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
+   	 lw $t0, 0($t0)                  # Load first word from keyboard
+   	 beq $t0, 1, handle_keyboard_input      # If first word 1, key is pressed
     
     
-    li $v0, 32			    # run loop(check for key press) every 50ms only
-    li $a0, 50	
-    j game_loop
+  	  	li $v0, 32			# run loop(check for key press) every 50ms only
+  	  	li $a0, 50	
+  	  	syscall
+    	 j game_loop
+    	
     
-handle_ball_movement: 
-	# ball moves
+    	# 1b. Check which key has been pressed
+    	handle_keyboard_input:          # A key is pressed
+    	lw $a0, 4($t0)                  # Load second word from keyboard
+    	beq $a0, 0x71, respond_to_q     # Check if the key q was pressed, quit game
+    	beq $a0, 0x61, respond_to_a     # Check if the key a was pressed, move paddle left
+    	beq $a0, 0x64, respond_to_d     # Check if the key d was pressed, move paddle right
+    	beq $a0, 0x78, respond_to_x     # Check if the key x was pressed, reset game
     
-    # 1b. Check which key has been pressed
-    handle_keyboard_input:          # A key is pressed
-    lw $a0, 4($t0)                  # Load second word from keyboard
-    beq $a0, 0x71, respond_to_q     # Check if the key q was pressed, quit game
-    beq $a0, 0x61, respond_to_a     # Check if the key a was pressed, move paddle left
-    beq $a0, 0x64, respond_to_d     # Check if the key d was pressed, move paddle right
-    beq $a0, 0x78, respond_to_x     # Check if the key x was pressed, reset game
-    # beq $a0, 0x73, respond_to_s	    # Check if the key s was presserd, start the game, this case has been dealt with in main
-    li $v0, 1                       # ask system to print $a0
-    syscall
+    	move_ball:
+    
+    	#  this case has been dealt with in main
+    	# beq $a0, 0x73, respond_to_s	    # Check if the key s was presserd, start the game,
+    	
+    
+    	respond_to_q:		     ## would be beneficial to add quit message
+    	li $v0, 10                       # ask system to quit
+    	syscall
+    
+    	respond_to_x:		     # resetting game
+    	j main			     ## would be beneficial to add reset game message
 
-    b main
-    
-    respond_to_q:		     ## would be beneficial to add quit message
-    li $v0, 10                       # ask system to quit
-    syscall
-    
-    respond_to_x:		     # resetting game
-    j main			     ## would be beneficial to add reset game message
+    	respond_to_a:
 
-    respond_to_a:
+    
+
+
+	# update screen and position variables to reflect movement to the left
+	# update_paddle_move_left:
+    	addi $a0, $s0, 0
+    	la $a1, BLACK		     # erasing the previous paddle
+    	sw $a1, 0($a1)
+    	li $a2, 4
+    	jal draw_line
+    
+    	addi $s0, $s0, -4		     # update the paddle position address
+    	addi $a0, $s0, 0
+    	la $a1, WHITE
+    	sw $a1, 0($a1)
+    	jal draw_line		     # drawing the new paddle with the new position
     
     
-    respond_to_d: 
+    	respond_to_d: 
+    
+    
 end: 
 	li $v0, 10		    # end the program gracefully 
 	syscall
