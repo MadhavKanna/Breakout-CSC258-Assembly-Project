@@ -1,21 +1,18 @@
-################ CSC258H1F Fall 2022 Assembly Final Project ##################
-# This file contains our implementation of Breakout.
+##############################################################################
+# Example: Displaying Pixels
 #
-# Student 1: Name, Student Number
-# Student 2: Name, Student Number
-######################## Bitmap Display Configuration ########################
-# - Unit width in pixels:       8
-# - Unit height in pixels:      8
-# - Display width in pixels:    256
-# - Display height in pixels:   256
-# - Base Address for Display:   0x10008000 ($gp)
+# This file demonstrates how to draw pixels with different colours to the
+# bitmap display.
 ##############################################################################
 
+######################## Bitmap Display Configuration ########################
+# - Unit width in pixels: 8
+# - Unit height in pixels: 8
+# - Display width in pixels: 256
+# - Display height in pixels: 256
+# - Base Address for Display: 0x10008000 ($gp)
+##############################################################################
     .data
-##############################################################################
-# Immutable Data
-##############################################################################
-# The address of the bitmap display. Don't forget to connect it!
 ADDR_DSPL:
     .word 0x10008000
 # The address of the keyboard. Don't forget to connect it!
@@ -28,11 +25,11 @@ ADDR_PADDLE:
 ADDR_BALL:
    .word 0x10008ebc 
 
-BALL_X:
-   .word 29
-      
-BALL_Y:
+X:
    .word 16
+      
+Y:
+   .word 29
 
 
 WALL:
@@ -119,8 +116,47 @@ draw_brick_loop:
         addi $t1, $t1, 4
     addi $t3, $t3, 1  
     b draw_brick_loop
+    
+get_location_address:
+    # Each unit is 4 bytes. Each row has 32 units (128 bytes)
+	sll 	$a3, $a3, 2				# x = x * 4
+	sll 	$a1, $a1, 7             # y = y * 128
+
+    # Calculate return value
+	la $v0, ADDR_DSPL 			# res = address of ADDR_DSPL
+        lw      $v0, 0($v0)             # res = address of (0, 0)
+	add 	$v0, $v0, $a3			# res = address of (x, 0)
+	add 	$v0, $v0, $a1           # res = address of (x, y)
+
+       jr $ra
+
+draw_ball:
+    # Retrieve the colour
+    lw $t0, YELLOW             # colour = *colour_address
+
+    # Iterate $a2 times, drawing each unit in the line
+    li $t1, 0                   # i = 0
+draw_ball_loop:
+    slt $t2, $t1, $a2           # i < width ?
+    beq $t2, $0, game_loop  # if not, then done
+        sw $t0, 0($a3)          # Paint unit with colour
+        addi $a3, $a3, -128        # Go to next unit
+
+    addi $t1, $t1, 1   
+    
+             li $a0, 50			#Sleep for 500ms
+   li $v0, 32			#Load syscall for sleep
+   syscall
+										#Execute
+   sw $0, 128($a3)
+   b draw_ball_loop         # i = i + 1
+
+draw_line_epi:
+    jr $ra
+        
    
-draw_padle_and_ball:
+draw_padle_and_ball:   
+
     #paddle
     la $t0, WHITE
     lw $t0, 0($t0)
@@ -130,27 +166,14 @@ draw_padle_and_ball:
     sw $t0, 4($t1)
     sw $t0, 8($t1)
     #ball
-    la $t0, YELLOW
-    lw $t0, 0($t0)
-    la $t1, ADDR_BALL 
-    lw $t1, 0($t1)
-    sw $t0, 0($t1)
 
-#move_ball:
- #   la $t0, YELLOW
-  #  lw $t0, 0($t0)
-   # la $t1, ADDR_BALL 
-    #lw $t1, 0($t1)
-    #sw $0, 0($t1)
-    #sw $t0, -128($t1)
-    
-    b game_loop 
-    
-exit:
-    li $v0, 10              # terminate the program gracefully
-    syscall
+    lw $a3, X
+    lw $a1, Y
+    jal get_location_address
 
-
+    addi $a3, $v0, 0            # Put return value in $a0
+    li $a2, 20
+    jal draw_ball               # Draw red line
 
 game_loop:
 	# 1a. Check if key has been pressed
@@ -181,14 +204,7 @@ game_loop:
     syscall
     
     respond_to_Q:
-    la $t0, YELLOW
-    lw $t0, 0($t0)
-    la $t1, ADDR_BALL 
-    lw $t1, 0($t1)
-    sw $0, 0($t1)
-    sw $t0, -128($t1)
-    li $v0, 10                       # ask system to quit
-    syscall
+   
     
     respond_to_A:
         la $t1, ADDR_PADDLE
@@ -206,9 +222,7 @@ game_loop:
         sw $t0, ADDR_PADDLE
         b game_loop
         
-        li $v0, 10                       # ask system to quit
-        syscall
-        
+
                         
     respond_to_D:
         la $t1, ADDR_PADDLE
@@ -226,13 +240,3 @@ game_loop:
         sw $t0, ADDR_PADDLE
         b game_loop
                    
-        li $v0, 10                       # ask system to quit
-        syscall
-
-        # 2a. Check for collisions
-	# 2b. Update locations (paddle, ball)
-	# 3. Draw the screen
-	# 4. Sleep
-
-    #5. Go back to 1
-    b game_loop
