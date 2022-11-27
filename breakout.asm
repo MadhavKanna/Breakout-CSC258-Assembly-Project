@@ -98,11 +98,13 @@ main:
     la $a1, BLUE
     jal draw_line	# draw blue line
     
-    # draw the paddle
+    # draw the paddle and set initial x position address
+    
     li $a0, 14
     li $a1, 30
     jal get_location_address
     addi $a0, $v0, 0
+    addi $s0, $v0, 0 	# load paddle position address initially
     la $a1, WHITE
     li $a2, 4
     
@@ -112,12 +114,25 @@ main:
      li $a0, 15
      li $a1, 29
      jal get_location_address
-     add $a0, $v0, 0, 
+     addi $a0, $v0, 0	
+     addi $s1, $v0, 0	# load ball position address initially
+     li $s2, 0		# load x component of ball velocity
+     li $s3, 1		# load y component of ball velocity
      la $a1, YELLOW
      li $a2, 1
      jal draw_line
     
+    # check if the user has started the game by pressing 's' key
+    lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
+check_start_loop:
+    lw $t0, 0($t0)                  # Load first word from keyboard
+    beq $t0, 0, check_start_loop      # If first word 0, key is not pressed, we check again
+    lw $t0, 4($t0)
+    beq $t0, 0x73, game_loop	    # if key pressed is 's', we start the game
     
+    li $v0, 32			    # run loop(check for key press) every 50ms only
+    li $a0, 50				
+    j check_start_loop		    # if key pressed isn't 's' we check again
     
     j end
 
@@ -180,15 +195,52 @@ get_location_address:
 	
 	jr $ra
 	
-end: 
+	
 
-# game_loop:
+
+# let $s0 represent the current address of the left most unit of the paddle(length 4 units)
+# let $s1 represent the current address of the ball
+# let $s2 represent the current x-component of velocity of the ball(can take values -1 and 1 only)
+# -1 indicates leftward velocity of ball
+# 1 indicates rightward velocity of ball
+# let $s3 represent the current y-component of velocity of the ball(can take values -1 and 1 only)
+# -1 indicates downward velocity of ball
+# 1 indicates upward velocity of ball
+game_loop:
 	# 1a. Check if key has been pressed
+    lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
+    lw $t0, 0($t0)                  # Load first word from keyboard
+    beq $t0, 1, handle_keyboard_input      # If first word 1, key is pressed
+    
+    
+    li $v0, 32			    # run loop(check for key press) every 50ms only
+    li $a0, 50	
+    j game_loop
+    
+handle_ball_movement: 
+	# ball moves
+    
     # 1b. Check which key has been pressed
-    # 2a. Check for collisions
-	# 2b. Update locations (paddle, ball)
-	# 3. Draw the screen
-	# 4. Sleep
+    handle_keyboard_input:          # A key is pressed
+    lw $a0, 4($t0)                  # Load second word from keyboard
+    beq $a0, 0x71, respond_to_q     # Check if the key q was pressed, quit game
+    beq $a0, 0x61, respond_to_a     # Check if the key a was pressed, move paddle left
+    beq $a0, 0x64, respond_to_d     # Check if the key d was pressed, move paddle right
+    beq $a0, 0x78, respond_to_x     # Check if the key x was pressed, reset game
+    # beq $a0, 0x73, respond_to_s	    # Check if the key s was presserd, start the game, this case has been dealt with in main
+    li $v0, 1                       # ask system to print $a0
+    syscall
 
-    #5. Go back to 1
-    # b game_loop
+    b main
+    
+    respond_to_q:		     ## would be beneficial to add quit message
+    li $v0, 10                       # ask system to quit
+    syscall
+    
+    respond_to_x:		     # resetting game
+    j main			     ## would be beneficial to add reset game message
+
+
+end: 
+	li $v0, 10		    # end the program gracefully 
+	syscall
