@@ -28,11 +28,11 @@ ADDR_PADDLE:
 ADDR_BALL:
    .word 0x10008ebc 
 
-BALL_X:
-   .word 29
-      
-BALL_Y:
+X:
    .word 16
+      
+Y:
+   .word 29
 
 WALL:
     .word 0x808080
@@ -102,16 +102,13 @@ main:
     
     
     # draw the ball
-     li $a0, 15
-     li $a1, 29
-     jal get_location_address
-     addi $a0, $v0, 0	
-     addi $s1, $v0, 0	# load ball position address initially
-     li $s2, 0		# load x component of ball velocity
-     li $s3, 1		# load y component of ball velocity
-     la $a1, YELLOW
-     li $a2, 1
-     jal draw_line
+     lw $a3, X
+    lw $a1, Y
+    jal get_location_address
+
+    addi $a3, $v0, 0            # Put return value in $a0
+    li $a2, 20
+     jal draw_ball
     
    b game_loop
 
@@ -165,16 +162,38 @@ draw_side_walls_epi:
 # get_location_address(x, y) -> int:
 # return the location address corresponding to x columns(units) and y(rows) where 1 unit = 4 bits
 get_location_address:
-	sll $a0, $a0, 2 		# loc_x = x * 4
+	sll $a3, $a3, 2 		# loc_x = x * 4
 	sll $a1, $a1, 7 	# loc_y = y * 128
 	la $v0, ADDR_DSPL	
 	lw $v0, 0($v0)	
-	add $v0, $v0, $a0
+	add $v0, $v0, $a3
 	add $v0, $v0, $a1
 	
 	jr $ra
 	
-	
+draw_ball:
+    # Retrieve the colour
+    lw $t0, YELLOW             # colour = *colour_address
+
+    # Iterate $a2 times, drawing each unit in the line
+    li $t1, 0                   # i = 0
+draw_ball_loop:
+    slt $t2, $t1, $a2           # i < width ?
+    beq $t2, $0, game_loop  # if not, then done
+        sw $t0, 0($a3)          # Paint unit with colour
+        addi $a3, $a3, -128        # Go to next unit
+
+    addi $t1, $t1, 1   
+    
+             li $a0, 50			#Sleep for 500ms
+   li $v0, 32			#Load syscall for sleep
+   syscall
+										#Execute
+   sw $0, 128($a3)
+   b draw_ball_loop         # i = i + 1
+
+draw_ball_epi:
+    jr $ra	
 
 
 # let $s0 represent the current address of the left most unit of the paddle(length 4 units)
@@ -205,9 +224,8 @@ game_loop:
     	beq $a0, 0x71, respond_to_q     # Check if the key q was pressed, quit game
     	beq $a0, 0x61, respond_to_a     # Check if the key a was pressed, move paddle left
     	beq $a0, 0x64, respond_to_d     # Check if the key d was pressed, move paddle right
-    	beq $a0, 0x78, respond_to_x     # Check if the key x was pressed, reset game
     
-    	move_ball:
+       
     
     	#  this case has been dealt with in main
     	# beq $a0, 0x73, respond_to_s	    # Check if the key s was presserd, start the game,
@@ -216,9 +234,6 @@ game_loop:
     	respond_to_q:		     ## would be beneficial to add quit message
     	li $v0, 10                       # ask system to quit
     	syscall
-    
-    	respond_to_x:		     # resetting game
-    	j main			     ## would be beneficial to add reset game message
 
     	respond_to_a:
         la $t1, ADDR_PADDLE
