@@ -202,7 +202,7 @@ draw_side_walls_epi:
 # from the start address
 get_location_address:
 	sll $a0, $a0, 2 		# loc_x = x * 4
-	sll $a1, $a1, 7 	# loc_y = y * 128
+	sll $a1, $a1, 7 		# loc_y = y * 128
 	addi $v0, $a2, 0
 	add $v0, $v0, $a0
 	add $v0, $v0, $a1
@@ -301,10 +301,14 @@ game_loop:
     		
     		
     		# draw new ball on screen after dealing with collisions
+    		li $v0, 1                       # ask system to print $a0
+    		li $a0, 88
+    		syscall
+    		
     		draw_new_ball:
     		la $a0, ADDR_BALL
     		lw $a0, 0($a0)
-    		la $a1, BLACK
+    		la $a1, YELLOW
     		li $a2, 1
     		jal draw_line
     		
