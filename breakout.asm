@@ -126,11 +126,15 @@ main:
      jal draw_line
     
     # check if the user has started the game by pressing 's' key
-    la $t0, ADDR_KBRD               # $t0 = base address for keyboard
+    la $t0, ADDR_KBRD                  
+    			
 check_start_loop:
-    lw $t0, 0($t0)                  # Load first word from keyboard
+    lw $t0, 0($t0)
+    
     beq $t0, 0, check_start_loop      # If first word 0, key is not pressed, we check again
-    lw $t0, 4($t0)
+    li $v0, 1		# ask the system to print 999 if game_loop has started
+	li $a0, 999
+	syscall
     beq $t0, 0x73, game_loop	    # if key pressed is 's', we start the game
     
     li $v0, 32			    # run loop(check for key press) every 50ms only
@@ -211,6 +215,9 @@ get_location_address:
 # -1 indicates downward velocity of ball
 # 1 indicates upward velocity of ball
 game_loop:
+	li $v0, 1		# ask the system to print 999 if game_loop has started
+	li $a0, 999
+	syscall
 	# 1a. Check if key has been pressed
    	 lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
    	 lw $t0, 0($t0)                  # Load first word from keyboard
