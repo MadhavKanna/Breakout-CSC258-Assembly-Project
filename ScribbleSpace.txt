@@ -1,0 +1,3 @@
+li $v0, 1                       # ask system to print $a0
+    	li $a0, 88
+    	syscall

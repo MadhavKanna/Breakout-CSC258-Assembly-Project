@@ -28,11 +28,11 @@ ADDR_PADDLE:
 ADDR_BALL:
    .word 0x10008ebc 
 
-BALL_X:
-   .word 29
+BALL_VEL_X:
+   .word 0
       
-BALL_Y:
-   .word 16
+BALL_VEL_Y:
+   .word 1
 
 
 WALL:
@@ -125,17 +125,18 @@ main:
      li $a2, 1
      jal draw_line
     
-    # check if the user has started the game by pressing 's' key
-    la $t0, ADDR_KBRD                  
-    			
-check_start_loop:
-    lw $t0, 0($t0)
+    # check if the user has started the game by pressing 's' key                 
     
-    beq $t0, 0, check_start_loop      # If first word 0, key is not pressed, we check again
-    li $v0, 1		# ask the system to print 999 if game_loop has started
-	li $a0, 999
-	syscall
-    beq $t0, 0x73, game_loop	    # if key pressed is 's', we start the game
+check_start_loop:
+    lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
+    lw $t8, 0($t0)                  # Load first word from keyboard
+    beq $t8, 1, check_s      # If first word 1, key is pressed
+    j check_start_loop
+check_s:
+     
+    lw $t7, 4($t0)
+     
+    beq $t7, 0x73, game_loop	    # if key pressed is 's', we start the game
     
     li $v0, 32			    # run loop(check for key press) every 50ms only
     li $a0, 50
@@ -215,13 +216,13 @@ get_location_address:
 # -1 indicates downward velocity of ball
 # 1 indicates upward velocity of ball
 game_loop:
-	li $v0, 1		# ask the system to print 999 if game_loop has started
-	li $a0, 999
-	syscall
+	# li $v0, 1		# ask the system to print 999 if game_loop has started
+	# li $a0, 999
+	# syscall
 	# 1a. Check if key has been pressed
-   	 lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
-   	 lw $t0, 0($t0)                  # Load first word from keyboard
-   	 beq $t0, 1, handle_keyboard_input      # If first word 1, key is pressed
+   	lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
+    	lw $t8, 0($t0)                  # Load first word from keyboard
+        beq $t8, 1, handle_keyboard_input      # If first word 1, key is pressed
     
     
   	  	li $v0, 32			# run loop(check for key press) every 50ms only
@@ -253,25 +254,49 @@ game_loop:
 
     	respond_to_a:
 
-    
-
-
 	# update screen and position variables to reflect movement to the left
-	# update_paddle_move_left:
-    	addi $a0, $s0, 0
+    	
+    	la $t5, ADDR_PADDLE
+    	lw $t7, 0($t5)
+    	
+    	addi $a0, $t7, 0
     	la $a1, BLACK		     # erasing the previous paddle
-    	sw $a1, 0($a1)
     	li $a2, 4
     	jal draw_line
-    
-    	addi $s0, $s0, -4		     # update the paddle position address
-    	addi $a0, $s0, 0
-    	la $a1, WHITE
-    	sw $a1, 0($a1)
-    	jal draw_line		     # drawing the new paddle with the new position
-    
+
+    	li $t0, 4
+    	sub $t7, $t7, $t0
+    	sw $t7, 0($t5)		     # save the newly calculated position of paddle to ADDR_PADDLE
+    	
+    	addi $a0, $t7, 0
+    	la $a1, WHITE		     # drawing the new paddle with the new position
+    	li $a2, 4
+    	jal draw_line	
+    	
+   	j game_loop	     
+    	
     
     	respond_to_d: 
+    	# update screen and position variables to reflect movement to the right
+    	
+    	la $t5, ADDR_PADDLE
+    	lw $t7, 0($t5)
+    	
+    	addi $a0, $t7, 0
+    	la $a1, BLACK		     # erasing the previous paddle
+    	li $a2, 4
+    	jal draw_line
+
+    	li $t0, 4
+    	add $t7, $t7, $t0
+    	sw $t7, 0($t5)		     # save the newly calculated position of paddle to ADDR_PADDLE
+    	
+    	addi $a0, $t7, 0
+    	la $a1, WHITE		     # drawing the new paddle with the new position
+    	li $a2, 4
+    	jal draw_line	
+    	
+   	j game_loop	
     
     
 end: 
