@@ -223,8 +223,7 @@ game_loop:
    	lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
     	lw $t8, 0($t0)                  # Load first word from keyboard
         beq $t8, 1, handle_keyboard_input      # If first word 1, key is pressed
-    
-    
+ 
   	  	li $v0, 32			# run loop(check for key press) every 50ms only
   	  	li $a0, 50	
   	  	syscall
@@ -238,9 +237,10 @@ game_loop:
     	beq $a0, 0x61, respond_to_a     # Check if the key a was pressed, move paddle left
     	beq $a0, 0x64, respond_to_d     # Check if the key d was pressed, move paddle right
     	beq $a0, 0x78, respond_to_x     # Check if the key x was pressed, reset game
-    
+    	
+    	# move the ball according to the x and y component velocity vectors BALL_VEC_X and BALL_VEC_Y
     	move_ball:
-    
+    	
     	#  this case has been dealt with in main
     	# beq $a0, 0x73, respond_to_s	    # Check if the key s was presserd, start the game,
     	
@@ -258,6 +258,16 @@ game_loop:
     	
     	la $t5, ADDR_PADDLE
     	lw $t7, 0($t5)
+    	
+    	# check if the position to right of paddle isn't wall (paddle collides)
+    	addi $t3, $t7, -4
+    	lw $t4, 0($t3)
+    	la $t2, WALL
+    	lw $t2, 0($t2)
+    	
+    	
+    	beq $t4, $t2, game_loop	# go back to game_loop, and don't update position of paddle if there is collision. 
+    				# collision occurs when the the unit to right of paddle isn't empty space
     	
     	addi $a0, $t7, 0
     	la $a1, BLACK		     # erasing the previous paddle
@@ -281,6 +291,16 @@ game_loop:
     	
     	la $t5, ADDR_PADDLE
     	lw $t7, 0($t5)
+    	
+    	# check if the position to right of paddle isn't wall (paddle collides)
+    	addi $t3, $t7, 16
+    	lw $t4, 0($t3)
+    	la $t2, WALL
+    	lw $t2, 0($t2)
+    	
+    	
+    	beq $t4, $t2, game_loop	# go back to game_loop, and don't update position of paddle if there is collision. 
+    				# collision occurs when the the unit to right of paddle isn't empty space
     	
     	addi $a0, $t7, 0
     	la $a1, BLACK		     # erasing the previous paddle
