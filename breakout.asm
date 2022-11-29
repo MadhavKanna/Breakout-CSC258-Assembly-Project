@@ -86,20 +86,13 @@ main:
     li $a2, 30
     jal draw_line	# draw red line
     addi $a0, $a0, 8
-    la $a1, GREEN 	
-    jal draw_line	# draw green line
-    addi $a0, $a0, 8
     la $a1, BLUE
     jal draw_line	# draw blue line
     addi $a0, $a0, 8
-    la $a1, RED
-    jal draw_line	# draw red line
-    addi $a0, $a0, 8
     la $a1, GREEN 	
     jal draw_line	# draw green line
-    addi $a0, $a0, 8
-    la $a1, BLUE
-    jal draw_line	# draw blue line
+    
+    
     
     # draw the paddle and set initial x position address
     
@@ -246,30 +239,34 @@ game_loop:
     	# move the ball according to the x and y component velocity vectors BALL_VEC_X and BALL_VEC_Y
     	move_ball:
     		la $t1, ADDR_BALL	# load all parameters of ball
-    		lw $t1, 0($t1)
+    		lw $t1, 0($t1)	
     		la $t2, BALL_VEL_X
     		lw $t2, 0($t2)
     		la $t3, BALL_VEL_Y
     		lw $t3, 0($t3)
     		
     		# erase previous ball
-    		addi $a0, $t0, 0
+    		
+    		addi $a0, $t1, 0
     		la $a1, BLACK
     		li $a2, 1
-    		jal draw_line
+    		jal draw_line	# draw_line modifies the address that is passed into it, have to reload ADDR_BALL every time
+    		
     		
     		# update position of new ball, check collision conditions and update
     		detect_collission_x:	# detect if there is a collision and change the velocity vectors accordingly
-    		beq $t2, $0, detect_collision_y	# if ball has no velocity in x axis, there can be no colision wrt x
+    		# beq $t2, $0, detect_collision_y	# if ball has no velocity in x axis, there can be no colision wrt x
     		
-    		addi $a0, $t2, 0		# here, we check in the direction of velocity component
+    		addi $a0, $t2, 0		# here, we check in the direction of x velocity component
     		li $a1, 0			# y-component is ignored for x direction collision
-    		addi $a2, $t1, 0
+    		la $a2, ADDR_BALL
+    		lw $a2, 0($a2)
     		jal get_location_address	# find address of potential next position of ball
     		addi $t4, $v0, 0
     		
     		
-    		lw $t4, 0($t4)		# get color stored in address at next position of ball
+    		
+    		lw $t4, 0($t4)		# get color stored in address at next position of ball 		
     		beq $t4, $0, detect_collision_y	# if the next position is empty(black), detect if there is collision in y axis
     		
     		li $t5, -1			# else invert velocity vector
@@ -284,13 +281,14 @@ game_loop:
     		detect_collision_y:	
     		li $a0, 0			# x component is ignored for y direction collision
     		addi $a1, $t3, 0		# we chekc in the direction of y velocity component
-    		addi $a2, $t1, 0
+    		la $a2, ADDR_BALL
+    		lw $a2, 0($a2)
     		jal get_location_address	# find address of potential next position of ball
     		addi $t4, $v0, 0
     		
     		
     		lw $t4, 0($t4)			# get color stored in address at next position of ball
-    		beq $t4, $0, draw_new_ball	# if the next position is empty(black), draw new ball in the new position. There was no collision
+    		beq $t4, $0, update_ball	# if the next position is empty(black), draw new ball in the new position. There was no collision
     		
     		li $t5, -1			# else invert velocity vector
     		mult $t3, $t5		
@@ -300,10 +298,20 @@ game_loop:
     		sw $t3, 0($t6)
     		
     		
-    		# draw new ball on screen after dealing with collisions
-    		li $v0, 1                       # ask system to print $a0
-    		li $a0, 88
-    		syscall
+    		# update new position of ball after calculating new velcity vectors
+    		update_ball:
+    		la $a0, BALL_VEL_X
+    		lw $a0, 0($a0)
+    		la $a1, BALL_VEL_Y
+    		lw $a1, 0($a1)
+    		la $a2, ADDR_BALL
+    		lw $a2, 0($a2)
+    		
+    		jal get_location_address
+    		addi $t0, $v0, 0   		
+    		la $t1, ADDR_BALL
+    		sw $t0, 0($t1)	
+    		
     		
     		draw_new_ball:
     		la $a0, ADDR_BALL
