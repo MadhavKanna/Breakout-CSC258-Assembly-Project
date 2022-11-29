@@ -1,8 +1,8 @@
 ################ CSC258H1F Fall 2022 Assembly Final Project ##################
 # This file contains our implementation of Breakout.
 #
-# Student 1: Name, Student Number
-# Student 2: Name, Student Number
+# Student 1: Madhav Kanna Thenappan, 1007841659
+# Student 2: Mugdha Banthwan, 1007630324
 ######################## Bitmap Display Configuration ########################
 # - Unit width in pixels:       8
 # - Unit height in pixels:      8
@@ -18,42 +18,50 @@
 # The address of the bitmap display. Don't forget to connect it!
 ADDR_DSPL:
     .word 0x10008000
+    
 # The address of the keyboard. Don't forget to connect it!
 ADDR_KBRD:
     .word 0xffff0000
 
+# The base address of the paddle
 ADDR_PADDLE:
    .word 0x10008f38  
 
+# The base address of the ball
 ADDR_BALL:
    .word 0x10008ebc 
 
-X:
-   .word 16
-      
-Y:
+# The initial X coordinate of the ball
+BALL_VEL_X:
+   .word 15
+
+# The initial Y coordinate of the ball    
+BALL_VEL_Y:
    .word 29
 
+# The color of the wall
 WALL:
-    .word 0x808080
+   .word 0x808080
 
+# The color of the first layer of bricks
 RED:
     .word	0xff0000    # red
 
+# The color of the third layer of bricks   
 GREEN:
     .word	0x00ff00    # green
 
+# The color of the second layer of bricks
 BLUE:
     .word	0x0000ff    # blue
 
+# The color of the paddle
 WHITE:
     .word	0xffffff    # white
-    
+
+# The color of the ball   
 YELLOW:
     .word	0xffff00    # white
-    
-BLACK: 
-    .word 	0x000000    # black
 
 ##############################################################################
 # Mutable Data
@@ -75,7 +83,6 @@ main:
     la $a2, 32
     jal draw_line
     
-    
     jal draw_side_walls
     
     la $a0, ADDR_DSPL
@@ -85,30 +92,30 @@ main:
     li $a2, 30
     jal draw_line	# draw red line
     addi $a0, $a0, 8
-    la $a1, GREEN 	
-    jal draw_line	# draw green line
-    addi $a0, $a0, 8
-    la $a1, BLUE
+    la $a1, BLUE	
     jal draw_line	# draw blue line
+    addi $a0, $a0, 8
+    la $a1, GREEN
+    jal draw_line	# draw green line
    
     
-    # draw the paddle and set initial x position address
+    # draw the paddle at the  base address
     
     lw $a0, ADDR_PADDLE
     la $a1, WHITE
     li $a2, 3
-    
     jal draw_line
     
     
-    # draw the ball
-     lw $a3, X
-    lw $a1, Y
+    # get the  base address for ball according to X and Y coordinates
+    lw $a3, BALL_VEL_X
+    lw $a1, BALL_VEL_Y
     jal get_location_address
 
-    addi $a3, $v0, 0            # Put return value in $a0
-    li $a2, 20
-     jal draw_ball
+    # draw the paddle at the  base address
+    addi $a3, $v0, 0            
+    li $a2, 27
+    jal draw_ball
     
    b game_loop
 
@@ -170,44 +177,59 @@ get_location_address:
 	add $v0, $v0, $a1
 	
 	jr $ra
-	
+
+
+		
 draw_ball:
     # Retrieve the colour
-    lw $t0, YELLOW             # colour = *colour_address
+    lw $t0, YELLOW             
+    lw $t1, ($a3)  
+    lw $t7, -128($a3)   
 
-    # Iterate $a2 times, drawing each unit in the line
-    li $t1, 0                   # i = 0
-draw_ball_loop:
-    slt $t2, $t1, $a2           # i < width ?
-    beq $t2, $0, game_loop  # if not, then done
-        sw $t0, 0($a3)          # Paint unit with colour
-        addi $a3, $a3, -128        # Go to next unit
 
-    addi $t1, $t1, 1   
+bgeu $a3, 0x10008f78, end                                 
+beq $t7, $0, draw_ball_loop
+beq $t7, 0x808080, bounce
+bne $t7, $0, remove 
+
+bounce:
+    sw $0, 0($a3)  
+    lw $t6, BALL_VEL_Y
+    li $t7, 29
+    sub $t6, $t7, $t6
+    li $t7, 128
+    mult $t6, $t7  
+    mfhi $t6
+    add $a3, $a3, $t6
+    jal game_loop
+    j draw_ball
     
-             li $a0, 50			#Sleep for 500ms
+remove:
+     sw $0, -128($a3)          # Paint unit with colour
+     addi $a3, $a3, 2048
+     jal game_loop
+     j draw_ball
+     
+draw_ball_loop:
+     sw $t0, 0($a3)          # Paint unit with colour
+     addi $a3, $a3, -128        # Go to next unit
+     lw $t6, BALL_VEL_Y
+     addi $t6, $t6, -1
+     sw $t6, BALL_VEL_Y  
+    
    li $v0, 32			#Load syscall for sleep
+   li $a0, 50			#Sleep for 500ms
    syscall
-										#Execute
+										
    sw $0, 128($a3)
-   b draw_ball_loop         # i = i + 1
-
-draw_ball_epi:
-    jr $ra	
+   jal game_loop
+   b draw_ball       
 
 
-# let $s0 represent the current address of the left most unit of the paddle(length 4 units)
-# let $s1 represent the current address of the ball
-# let $s2 represent the current x-component of velocity of the ball(can take values -1 and 1 only)
-# -1 indicates leftward velocity of ball
-# 1 indicates rightward velocity of ball
-# let $s3 represent the current y-component of velocity of the ball(can take values -1 and 1 only)
-# -1 indicates downward velocity of ball
-# 1 indicates upward velocity of ball
 game_loop:
         li $v0, 32			# run loop(check for key press) every 50ms only
-  	  	li $a0, 50	
-  	  	syscall
+  	li $a0, 50	
+  	syscall
 	# 1a. Check if key has been pressed
    	 lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
    	 lw $t8, 0($t0)                  # Load first word from keyboard
@@ -225,14 +247,8 @@ game_loop:
     	beq $a0, 0x61, respond_to_a     # Check if the key a was pressed, move paddle left
     	beq $a0, 0x64, respond_to_d     # Check if the key d was pressed, move paddle right
     
-       
-    
-    	#  this case has been dealt with in main
-    	# beq $a0, 0x73, respond_to_s	    # Check if the key s was presserd, start the game,
-    	
-    
-    	respond_to_q:		     ## would be beneficial to add quit message
-    	li $v0, 10                       # ask system to quit
+    	respond_to_q:		     
+    	li $v0, 10                      
     	syscall
 
     	respond_to_a:
@@ -250,13 +266,6 @@ game_loop:
         addi $t0, $t1, -4
         sw $t0, ADDR_PADDLE
         b game_loop
-    
-
-
-	# update screen and position variables to reflect movement to the left
-	# update_paddle_move_left:
-    	
-    
     
     	respond_to_d: 
         la $t1, ADDR_PADDLE
