@@ -221,9 +221,11 @@ game_loop:
    	lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
     	lw $t8, 0($t0)                  # Load first word from keyboard
         beq $t8, 1, handle_keyboard_input      # If first word 1, key is pressed
+        after_keypress:
+        j move_ball
  
   	  	li $v0, 32			# run loop(check for key press) every 50ms only
-  	  	li $a0, 50	
+  	  	li $a0, 1000	
   	  	syscall
     	 j game_loop
     	
@@ -235,6 +237,8 @@ game_loop:
     	beq $a0, 0x61, respond_to_a     # Check if the key a was pressed, move paddle left
     	beq $a0, 0x64, respond_to_d     # Check if the key d was pressed, move paddle right
     	beq $a0, 0x78, respond_to_x     # Check if the key x was pressed, reset game
+    	j after_keypress
+    	
     	
     	# move the ball according to the x and y component velocity vectors BALL_VEC_X and BALL_VEC_Y
     	move_ball:
@@ -361,7 +365,7 @@ game_loop:
     	li $a2, 4
     	jal draw_line	
     	
-   	j move_ball	     
+   	j after_keypress	     
     	
     
     	respond_to_d: 
@@ -394,7 +398,7 @@ game_loop:
     	li $a2, 4
     	jal draw_line	
     	
-   	j move_ball	
+   	j after_keypress	
     
     
 end: 
