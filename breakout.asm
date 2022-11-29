@@ -225,7 +225,7 @@ game_loop:
         j move_ball
  
   	  	li $v0, 32			# run loop(check for key press) every 50ms only
-  	  	li $a0, 1000	
+  	  	li $a0, 500	
   	  	syscall
     	 j game_loop
     	
@@ -250,6 +250,10 @@ game_loop:
     		lw $t3, 0($t3)
     		
     		# erase previous ball
+    		li $v0, 1                       # ask system to print $a0
+    		li $a0, 88
+    		syscall
+    		
     		
     		addi $a0, $t1, 0
     		la $a1, BLACK
@@ -275,10 +279,13 @@ game_loop:
     		
     		li $t5, -1			# else invert velocity vector
     		mult $t2, $t5		
-    		mflo $t2
+    		mflo $t7
     		
     		la $t6, BALL_VEL_X		# update BALL_VEL_X with the new x velocity component
-    		sw $t2, 0($t6)
+    		sw $t7, 0($t6)
+    		# delete brick along the initial x velocity direction if it's not the paddle or walls
+    		
+		
     		
     		
     		
@@ -300,6 +307,20 @@ game_loop:
     		
     		la $t6, BALL_VEL_Y		# update BALL_VEL_X with the new x velocity component
     		sw $t3, 0($t6)
+    		
+    		# delete brick along the initial y velocity direction if it's not the paddle or walls
+    		
+		la $t0, WALL
+		lw $t0, 0($t0)
+		la $t1, WHITE
+		lw $t1, 0($t1)
+    		beq $t4, $t0, update_ball
+    		beq $t4, $t1, update_ball 
+    		
+    		addi $a0, $v0, 0		# obtain previous potential address of ball from previous get_location_address call's $v0
+    		addi $a1, $0, 0
+    		li $a2, 1
+    		jal draw_line
     		
     		
     		# update new position of ball after calculating new velcity vectors

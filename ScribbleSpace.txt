@@ -1,3 +1,14 @@
 li $v0, 1                       # ask system to print $a0
-    	li $a0, 88
-    	syscall
+    		li $a0, 88
+    		syscall
+la $t0, WALL
+		lw $t0, 0($t0)
+		la $t1, WHITE
+		lw $t1, 0($t1)
+    		beq $t4, $t0, detect_collision_y
+    		beq $t4, $t1, detect_collision_y 
+    		
+    		addi $a0, $v0, 0		# obtain previous potential address of ball from previous get_location_address call
+    		addi $a1, $0, 0
+    		li $a2, 1
+    		jal draw_line
