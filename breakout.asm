@@ -29,7 +29,7 @@ ADDR_BALL:
    .word 0x10008ebc 
 
 BALL_VEL_X:
-   .word 0
+   .word 1
       
 BALL_VEL_Y:
    .word 1
@@ -76,7 +76,7 @@ main:
     la $a2, 32
     jal draw_line
     
-    
+    addi $a0, $a0, 128
     jal draw_side_walls
     
     la $a0, ADDR_DSPL
@@ -85,10 +85,10 @@ main:
     la $a1, RED
     li $a2, 30
     jal draw_line	# draw red line
-    addi $a0, $a0, 8
+    addi $a0, $a0, 128
     la $a1, BLUE
     jal draw_line	# draw blue line
-    addi $a0, $a0, 8
+    addi $a0, $a0, 128
     la $a1, GREEN 	
     jal draw_line	# draw green line
     
@@ -149,6 +149,15 @@ check_s:
 #       - The start address can "accommodate" a line of width units
 # NOTE: This function is not a pure function, necessary to take care to reinitialize variables in case of bugs
 draw_line:
+	# PROLOGUE
+	addi $sp, $sp, -28
+	sw $ra, 0($sp)
+	sw $a0, 4($sp)
+	sw $a1, 8($sp)
+	sw $a2, 12($sp)
+	sw $t0, 16($sp)
+	sw $t1, 20($sp)
+	sw $t2, 24($sp)
     # Retrieve the colour
     lw $t0, 0($a1)              # colour = *colour_address
 
@@ -165,6 +174,14 @@ draw_line_loop:
     b draw_line_loop
 
 draw_line_epi:
+	lw $ra, 0($sp)
+	lw $a0, 4($sp)
+	lw $a1, 8($sp)
+	lw $a2, 12($sp)
+	lw $t0, 16($sp)
+	lw $t1, 20($sp)
+	lw $t2, 24($sp)
+	addi $sp, $sp, 28
     jr $ra
 	
 #draw_side_walls(start, colour_address) -> void
@@ -202,15 +219,60 @@ get_location_address:
 	
 	jr $ra
 	
+invert_velocity_x: 
+	# PROLOGUE
+		addi $sp, $sp, -16
+		sw $ra, 0($sp)
+		sw $t2, 4($sp)
+		sw $t5, 8($sp)
+		sw $t6, 12($sp)
+	# BODTY
+		li $t5, -1			# else invert velocity vector
+    		mult $t2, $t5		
+    		mflo $t2
+    		
+    		la $t6, BALL_VEL_X		# update BALL_VEL_X with the new x velocity component
+    		sw $t2, 0($t6)
+    		
+    	# EPILOGUE
+    		lw $ra, 0($sp)
+		lw $t2, 4($sp)
+		lw $t5, 8($sp)
+		lw $t6, 12($sp)
+		
+		jr $ra
 	
+	
+invert_velocity_y:
+	# PROLOGUE
+		addi $sp, $sp, -16
+		sw $ra, 0($sp)
+		sw $t2, 4($sp)
+		sw $t5, 8($sp)
+		sw $t6, 12($sp)
+		
+	# BODY 
+		li $t5, -1			# else invert velocity vector
+    		mult $t3, $t5		
+    		mflo $t3
+    		
+    		la $t6, BALL_VEL_Y		# update BALL_VEL_X with the new x velocity component
+    		sw $t3, 0($t6)
+    	# EPILOGUE
+    		lw $ra, 0($sp)
+		lw $t2, 4($sp)
+		lw $t5, 8($sp)
+		lw $t6, 12($sp)
+		
+		jr $ra 
 
 
-# let $s0 represent the current address of the left most unit of the paddle(length 4 units)
-# let $s1 represent the current address of the ball
-# let $s2 represent the current x-component of velocity of the ball(can take values -1 and 1 only)
+
+# x-component of velocity of the ball can take values -1 and 1 only
 # -1 indicates leftward velocity of ball
 # 1 indicates rightward velocity of ball
-# let $s3 represent the current y-component of velocity of the ball(can take values -1 and 1 only)
+
+# y-component of velocity of the ball can take values -1 and 1 only
 # -1 indicates downward velocity of ball
 # 1 indicates upward velocity of ball
 game_loop:
@@ -220,10 +282,17 @@ game_loop:
 	# 1a. Check if key has been pressed
    	lw $t0, ADDR_KBRD               # $t0 = base address for keyboard
     	lw $t8, 0($t0)                  # Load first word from keyboard
+    	
+    	li $v0, 1                       # ask system to print $a0
+    	addi $a0, $t8, 0
+    	syscall
+    	
         beq $t8, 1, handle_keyboard_input      # If first word 1, key is pressed
  
+ 	j move_ball
+ after_moving_ball:	
   	  	li $v0, 32			# run loop(check for key press) every 50ms only
-  	  	li $a0, 50	
+  	  	li $a0, 500	
   	  	syscall
     	 j game_loop
     	
@@ -235,6 +304,7 @@ game_loop:
     	beq $a0, 0x61, respond_to_a     # Check if the key a was pressed, move paddle left
     	beq $a0, 0x64, respond_to_d     # Check if the key d was pressed, move paddle right
     	beq $a0, 0x78, respond_to_x     # Check if the key x was pressed, reset game
+    	
     	
     	# move the ball according to the x and y component velocity vectors BALL_VEC_X and BALL_VEC_Y
     	move_ball:
@@ -266,17 +336,24 @@ game_loop:
     		
     		
     		
-    		lw $t4, 0($t4)		# get color stored in address at next position of ball 		
-    		beq $t4, $0, detect_collision_y	# if the next position is empty(black), detect if there is collision in y axis
+    		lw $t5, 0($t4)		# get color stored in address at next position of ball 		
+    		beq $t5, $0, detect_collision_y	# if the next position is empty(black), detect if there is collision in y axis
     		
-    		li $t5, -1			# else invert velocity vector
-    		mult $t2, $t5		
-    		mflo $t2
+    		jal invert_velocity_x
     		
-    		la $t6, BALL_VEL_X		# update BALL_VEL_X with the new x velocity component
-    		sw $t2, 0($t6)
+    		la $t0, WALL
+    		lw $t0, 0($t0)
+    		la $t1, WHITE
+    		lw $t1, 0($t1)
     		
     		
+    		beq $t5, $t0, detect_collision_y	# if there's a wall or paddle at next position of ball, skip to drawing next position of ball
+    		beq $t5, $t1, detect_collision_y	# don't delete the wall/paddle
+    		
+    		addi $a0, $t4, 0		# erase the brick
+    		la $a1, BLACK
+    		li $a2, 1
+    		jal draw_line
     		
     		detect_collision_y:	
     		li $a0, 0			# x component is ignored for y direction collision
@@ -287,15 +364,23 @@ game_loop:
     		addi $t4, $v0, 0
     		
     		
-    		lw $t4, 0($t4)			# get color stored in address at next position of ball
-    		beq $t4, $0, update_ball	# if the next position is empty(black), draw new ball in the new position. There was no collision
+    		lw $t5, 0($t4)			# get color stored in address at next position of ball
+    		beq $t5, $0, update_ball	# if the next position is empty(black), draw new ball in the new position. There was no collision
     		
-    		li $t5, -1			# else invert velocity vector
-    		mult $t3, $t5		
-    		mflo $t3
+    		jal invert_velocity_y
     		
-    		la $t6, BALL_VEL_Y		# update BALL_VEL_X with the new x velocity component
-    		sw $t3, 0($t6)
+    		la $t0, WALL
+    		lw $t0, 0($t0)
+    		la $t1, WHITE
+    		lw $t1, 0($t1)
+    		beq $t5, $t0, update_ball	# if there's a wall or paddle at next position of ball, skip to drawing next position of ball
+    		beq $t5, $t1, update_ball	# don't delete the wall/paddle
+    		
+    		addi $a0, $t4, 0		# erase the brick
+    		la $a1, BLACK
+    		li $a2, 1
+    		jal draw_line
+    		
     		
     		
     		# update new position of ball after calculating new velcity vectors
@@ -320,7 +405,7 @@ game_loop:
     		li $a2, 1
     		jal draw_line
     		
-    	j game_loop		
+    	j after_moving_ball		
 
     
     	respond_to_q:		     ## would be beneficial to add quit message
