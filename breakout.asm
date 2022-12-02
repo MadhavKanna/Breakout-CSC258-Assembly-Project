@@ -413,6 +413,18 @@ game_loop:
     	syscall
     
     	respond_to_x:		     # resetting game
+    	# erase previous position of ball
+    	la $a0, ADDR_BALL
+	lw $a0, 0($a0)
+    	la $a1, BLACK
+    	li $a2, 1
+    	jal draw_line
+    	
+    	# erase previous posisition of paddle
+    	la $a0, ADDR_PADDLE
+    	lw $a0, 0($a0)
+    	li $a2, 4
+    	jal draw_line
     	j main			     ## would be beneficial to add reset game message
 
     	respond_to_a:
