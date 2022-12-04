@@ -223,7 +223,31 @@ draw_side_walls_loop:
 draw_side_walls_epi:  
     jr $ra  
   
-  
+ 
+draw_ball:
+    # Retrieve the colour
+    lw $t0, PURPLE            # colour = *colour_address
+
+    # Iterate $a2 times, drawing each unit in the line
+    li $t1, 0 
+    li $t5, 8                  # i = 0
+draw_ball_loop:
+    slt $t2, $t1, $t5           # i < width ?
+    beq $t2, $0, update_ball # if not, then done
+        sw $t0, 0($a3)          # Paint unit with colour
+        addi $a3, $a3, 128        # Go to next unit
+
+    addi $t1, $t1, 1   
+    
+             li $a0, 50			#Sleep for 500ms
+   li $v0, 32			#Load syscall for sleep
+   syscall
+										#Execute
+   sw $0, -128($a3)
+   b draw_ball_loop         # i = i + 1
+
+draw_ball_epi:
+    jr $ra 
 # get_location_address(x, y, start) -> int:  
 # return the location address corresponding to x columns(units) and y(rows) where 1 unit = 4 bits  
 # from the start address  
@@ -399,7 +423,9 @@ game_loop:
             sw $t4, ADDR_BRICK
             la $a1, BLACK  
             li $a2, 1  
-            jal draw_line  	
+            jal draw_line  
+            addi $a3, $a0, 0
+            jal draw_ball	
             	
             detect_collision_y:  
             
@@ -434,6 +460,8 @@ game_loop:
             la $a1, BLACK  
             li $a2, 1  
             jal draw_line  
+            addi $a3, $a0, 0
+            jal draw_ball
             
             # update new position of ball after calculating new velcity vectors  
             update_ball:  
