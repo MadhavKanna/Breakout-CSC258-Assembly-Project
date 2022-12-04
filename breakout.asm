@@ -33,6 +33,9 @@ BALL_VEL_X:
       
 BALL_VEL_Y:
    .word 1
+   
+NUM_LIVES:
+   .word 3
 
 
 WALL:
@@ -211,12 +214,26 @@ draw_side_walls_epi:
 # return the location address corresponding to x columns(units) and y(rows) where 1 unit = 4 bits
 # from the start address
 get_location_address:
+	# PROLOGUE
+	addi $sp, $sp, -16
+	sw $ra, 0($sp)
+	sw $a0, 4($sp)
+	sw $a1, 8($sp)
+	sw $a2, 12($sp)
+	
+	# BODY
 	sll $a0, $a0, 2 		# loc_x = x * 4
 	sll $a1, $a1, 7 		# loc_y = y * 128
 	addi $v0, $a2, 0
 	add $v0, $v0, $a0
 	add $v0, $v0, $a1
 	
+	# EPILOGUE
+	lw $ra, 0($sp)
+	lw $a0, 4($sp)
+	lw $a1, 8($sp)
+	lw $a2, 12($sp)
+	addi $sp, $sp, 16
 	jr $ra
 	
 invert_velocity_x: 
@@ -396,6 +413,19 @@ game_loop:
     		addi $t0, $v0, 0   		
     		la $t1, ADDR_BALL
     		sw $t0, 0($t1)	
+    		
+    		# check if ball is behind the paddle
+    		
+    		
+    		
+    		# get this function from scribble_space
+    		# check_end_game(ball_address, num_balls) -> void
+    		# checks if the game has ended(if the ball is behind the paddle and there is only only one ball in play)
+    		
+    		
+    		
+    		
+    		
     		
     		
     		draw_new_ball:
