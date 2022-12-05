@@ -444,7 +444,7 @@ game_loop:
     j move_ball  
  after_moving_ball:   
         li $v0, 32          # run loop(check for key press) every 50ms only  
-        li $a0, 500   
+        li $a0, 250   
         syscall  
          j game_loop  
           
