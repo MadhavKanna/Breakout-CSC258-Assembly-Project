@@ -129,11 +129,6 @@ main:
     li $a2, 12
     jal draw_brick_pair
     
-    addi $a0, $a0, -12
-    la $a1, ORANGE
-    li $a2, 36
-    jal draw_brick_pair
-    
     li $a0, 12
     li $a1, 4
     la $a2, ADDR_DSPL
@@ -183,16 +178,12 @@ main:
     li $a2, 36
     jal draw_brick_pair
     
-    # draw multi-hit bricks
-    # double hit bricks and triple-hit-bricks
-    
-    
-    
-    
-    
-    
+    addi $a0, $a0, -28
+    la $a1, ORANGE
+    li $a2, 92
+    jal draw_brick_pair
 
-      
+    
       
     # draw the paddle and set initial x position address  
       
@@ -484,7 +475,7 @@ game_loop:
     j move_ball  
  after_moving_ball:   
         li $v0, 32          # run loop(check for key press) every 50ms only  
-        li $a0, 250   
+        li $a0, 400   
         syscall  
          j game_loop  
           
