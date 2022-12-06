@@ -58,18 +58,15 @@ YELLOW:
       
 BLACK:   
     .word   0x000000    # black  
-
-SCORE:
-   .word  0 # 0 at start
    
-PINK:
- .word 0xffc0cb
+CYAN:
+ .word 0x00ffff		# cyan
  
 PURPLE:
-.word  0xa020f0
+.word  0xa020f0		# purple
 
-LIGHTBLUE:
- .word 0xadd8e6
+ORANGE:
+ .word 0xffa500		# orange
   
 ##############################################################################  
 # Mutable Data  
@@ -118,16 +115,24 @@ main:
     
     
      
-    # draw unbreakable bricks
+    # draw unbreakable bricks multi-hit bricks
     li $a0, 14
     li $a1, 3
     la $a2, ADDR_DSPL
     lw $a2, 0($a2)
     jal get_location_address
     
+    
+    
     addi $a0, $v0, 0
-    li $a1, 12
-    jal draw_unbreakable_brick
+    la $a1, WHITE
+    li $a2, 12
+    jal draw_brick_pair
+    
+    addi $a0, $a0, -12
+    la $a1, ORANGE
+    li $a2, 36
+    jal draw_brick_pair
     
     li $a0, 12
     li $a1, 4
@@ -136,8 +141,9 @@ main:
     jal get_location_address
     
     addi $a0, $v0, 0
-    li $a1, 28
-    jal draw_unbreakable_brick
+    la $a1, WHITE
+    li $a2, 28
+    jal draw_brick_pair
     
     li $a0, 10
     li $a1, 5
@@ -146,8 +152,9 @@ main:
     jal get_location_address
     
     addi $a0, $v0, 0
-    li $a1, 44
-    jal draw_unbreakable_brick
+    la $a1, WHITE
+    li $a2, 44
+    jal draw_brick_pair
     
     li $a0, 8
     li $a1, 6
@@ -156,8 +163,9 @@ main:
     jal get_location_address
     
     addi $a0, $v0, 0
-    li $a1, 60
-    jal draw_unbreakable_brick
+    la $a1, WHITE
+    li $a2, 60
+    jal draw_brick_pair
     
     li $a0, 7
     li $a1, 7
@@ -166,8 +174,22 @@ main:
     jal get_location_address
     
     addi $a0, $v0, 0
-    li $a1, 68
-    jal draw_unbreakable_brick
+    la $a1, WHITE
+    li $a2, 68
+    jal draw_brick_pair
+    
+    addi $a0, $a0, 16
+    la $a1, CYAN
+    li $a2, 36
+    jal draw_brick_pair
+    
+    # draw multi-hit bricks
+    # double hit bricks and triple-hit-bricks
+    
+    
+    
+    
+    
     
 
       
@@ -220,8 +242,8 @@ check_s:
       
     j end  
 
-# draw_unbreakable_bricks(start_address, separation)-> void
-    draw_unbreakable_brick:
+# draw_unbreakable_bricks(start_address, color_address, separation)-> void
+    draw_brick_pair:
     # PROLOGUE
     addi $sp, $sp, -20
     sw $a0, 4($sp)
@@ -231,14 +253,16 @@ check_s:
     sw $ra, 0($sp)
     
     # BODY
-    addi $t1, $a1, 0
+    addi $t1, $a2, 0
     
-    la $a1, WHITE
     li $a2, 1
     jal draw_line
     
-    add $a0, $a0, $t1
+    add $a0, $a0, $t1 
+    
     jal draw_line
+    
+    
     
     # EPILOGUE
     
@@ -342,6 +366,8 @@ draw_ball_loop:
 
 draw_ball_epi:
     jr $ra 
+    
+    
 # get_location_address(x, y, start) -> int:  
 # return the location address corresponding to x columns(units) and y(rows) where 1 unit = 4 bits  
 # from the start address  
@@ -522,20 +548,11 @@ game_loop:
             beq $t5, $t1, update_ball  # don't delete the wall/paddle  
             
             
-           	# no sound
-            lw $t7, SCORE
-            addi $t7, $t7, 1
-            sw $t7, SCORE	
-            
+           # no sound
+            addi $a0, $t4, 0		# load potential next position of the ball
+            jal handle_brick_collision
             			
-            addi $a0, $t4, 0        # erase the brick
-            sw $t4, ADDR_BRICK
-            la $a1, BLACK  
-            li $a2, 1  
-            jal draw_line  
-            addi $a3, $a0, 0
-            jal draw_ball	
-            	
+            
             detect_collision_y:  
             
                
@@ -565,12 +582,11 @@ game_loop:
             beq $t5, $t0, update_ball# if there's a wall or paddle at next position of ball, skip to drawing next position of ball  
             beq $t5, $t1, update_ball  # don't delete the wall/paddle  
             					#Execute  
-            addi $a0, $t4, 0        # erase the brick  
-            la $a1, BLACK  
-            li $a2, 1  
-            jal draw_line  
-            addi $a3, $a0, 0
-            jal draw_ball
+            
+            addi $a0, $t4, 0		# load potential next position of the ball
+            jal handle_brick_collision
+            
+            
             
             detect_collision_diagonal:
             addi $a0, $t2, 0         
@@ -600,12 +616,8 @@ game_loop:
             beq $t5, $t0, update_ball   # if there's a wall or paddle at next position of ball, skip to drawing next position of ball  
             beq $t5, $t1, update_ball   # don't delete the wall/paddle  
             					#Execute  
-            addi $a0, $t4, 0        # erase the brick  
-            la $a1, BLACK  
-            li $a2, 1  
-            jal draw_line  
-            addi $a3, $a0, 0
-            jal draw_ball
+            addi $a0, $t4, 0		# load potential next position of the ball        
+            jal handle_brick_collision
             
             # update new position of ball after calculating new velcity vectors  
             update_ball:  
@@ -641,7 +653,43 @@ game_loop:
               
         j after_moving_ball       
   
-      
+      	
+      	# handle_brick_collision(potential_position_of_ball)
+      	handle_brick_collision:
+      	    
+            
+            lw $t0, 0($a0)	# get color at previous position of ball
+            
+            la $t1, CYAN
+            lw $t1, 0($t1)
+            la $t2, ORANGE
+            lw $t2, 0($t2)
+            # select which color to draw in place of the potential_position_of_ball
+            beq $t0, $t2, load_pink
+            beq $t0, $t1, load_red
+            # else 
+            la $a1, BLACK
+            
+            load_pink:
+            	la $a1, CYAN
+            	j draw_color
+            load_red:
+            	la $a1, RED
+            	j draw_color
+            load_black:
+            	la $a1, BLACK
+            	
+            
+            draw_color:
+            # previous location of ball already in $a0
+            li $a2, 1  
+            jal draw_line  
+            addi $a3, $a0, 0
+            sw $a0, ADDR_BRICK
+            jal draw_ball	
+            	
+        jr $ra
+      	
         respond_to_q:  
         
         li $v0, 10                       # ask system to quit  
