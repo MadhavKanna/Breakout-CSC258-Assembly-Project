@@ -114,8 +114,7 @@ main:
     addi $a0, $a0, -256
     la $a1, GREEN     
     jal draw_line   # draw green line  
-    addi $a0, $a0, 384
-    jal draw_line   # draw green line
+    
     
     
      
@@ -130,18 +129,8 @@ main:
     li $a1, 12
     jal draw_unbreakable_brick
     
-    li $a0, 13
-    li $a1, 4
-    la $a2, ADDR_DSPL
-    lw $a2, 0($a2)
-    jal get_location_address
-    
-    addi $a0, $v0, 0
-    li $a1, 20
-    jal draw_unbreakable_brick
-    
     li $a0, 12
-    li $a1, 5
+    li $a1, 4
     la $a2, ADDR_DSPL
     lw $a2, 0($a2)
     jal get_location_address
@@ -150,24 +139,34 @@ main:
     li $a1, 28
     jal draw_unbreakable_brick
     
-    li $a0, 11
-    li $a1, 6
-    la $a2, ADDR_DSPL
-    lw $a2, 0($a2)
-    jal get_location_address
-    
-    addi $a0, $v0, 0
-    li $a1, 36
-    jal draw_unbreakable_brick
-    
     li $a0, 10
-    li $a1, 7
+    li $a1, 5
     la $a2, ADDR_DSPL
     lw $a2, 0($a2)
     jal get_location_address
     
     addi $a0, $v0, 0
     li $a1, 44
+    jal draw_unbreakable_brick
+    
+    li $a0, 8
+    li $a1, 6
+    la $a2, ADDR_DSPL
+    lw $a2, 0($a2)
+    jal get_location_address
+    
+    addi $a0, $v0, 0
+    li $a1, 60
+    jal draw_unbreakable_brick
+    
+    li $a0, 7
+    li $a1, 7
+    la $a2, ADDR_DSPL
+    lw $a2, 0($a2)
+    jal get_location_address
+    
+    addi $a0, $v0, 0
+    li $a1, 68
     jal draw_unbreakable_brick
     
 
@@ -347,12 +346,27 @@ draw_ball_epi:
 # return the location address corresponding to x columns(units) and y(rows) where 1 unit = 4 bits  
 # from the start address  
 get_location_address:  
+    # PROLOGUE
+    # only $a0 and $a1 are modified
+    addi $sp, $sp, -12
+    sw $ra, 0($sp)
+    sw $a0, 4($sp)
+    sw $a1, 8($sp)
+    # BODY
+    
     sll $a0, $a0, 2         # loc_x = x * 4  
     sll $a1, $a1, 7         # loc_y = y * 128  
     addi $v0, $a2, 0  
     add $v0, $v0, $a0  
     add $v0, $v0, $a1  
       
+      
+    # EPILOGUE
+    lw $ra, 0($sp)
+    lw $a0, 4($sp)
+    lw $a1, 8($sp)
+    addi $sp, $sp, 12
+    
     jr $ra  
       
 invert_velocity_x:   
