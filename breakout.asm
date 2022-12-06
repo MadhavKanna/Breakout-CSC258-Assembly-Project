@@ -665,16 +665,17 @@ game_loop:
             la $t2, ORANGE
             lw $t2, 0($t2)
             # select which color to draw in place of the potential_position_of_ball
-            beq $t0, $t2, load_pink
-            beq $t0, $t1, load_red
+            beq $t0, $t2, load_cyan
+            beq $t0, $t1, load_green
+            j load_black
             # else 
             la $a1, BLACK
             
-            load_pink:
+            load_cyan:
             	la $a1, CYAN
             	j draw_color
-            load_red:
-            	la $a1, RED
+            load_green:
+            	la $a1, GREEN
             	j draw_color
             load_black:
             	la $a1, BLACK
@@ -684,7 +685,7 @@ game_loop:
             # previous location of ball already in $a0
             li $a2, 1  
             jal draw_line  
-            addi $a3, $a0, 0
+            addi $a3, $a0, 128
             sw $a0, ADDR_BRICK
             jal draw_ball	
             	
